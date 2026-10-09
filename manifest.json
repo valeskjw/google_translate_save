@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "SpanishDict Vocabulary Saver",
+  "name": "Spanish Vocabulary Saver",
   "version": "1.0",
-  "description": "Saves translated terms from SpanishDict to a dictionary text file.",
+  "description": "Saves translated terms to a readable html file.",
   "permissions": [
     "storage"
   ],
