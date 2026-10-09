@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "SpanishDict Vocabulary Saver",
+  "version": "1.0",
+  "description": "Saves translated terms from SpanishDict to a dictionary text file.",
+  "permissions": [
+    "storage"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.spanishdict.com/translate/*"
+      ],
+      "css": ["styles.css"],
+      "js": ["content.js"]
+    }
+  ]
+}
