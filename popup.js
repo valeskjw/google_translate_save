@@ -50,34 +50,57 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  async function performTranslation() {
-    const text = translateInput.value.trim();
-    if (!text) return;
+async function performTranslation() {
+  const text = translateInput.value.trim();
+  if (!text) return;
 
-    translateOutput.innerText = 'Translating...';
-    saveBtn.disabled = true;
+  translateOutput.innerText = 'Translating...';
+  saveBtn.disabled = true;
 
-    try {
-      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
-      const response = await fetch(url);
-      const data = await response.json();
+  try {
+    let url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=es&dt=t&q=${encodeURIComponent(text)}`;
+    let response = await fetch(url);
+    let data = await response.json();
 
-      if (data && data[0]) {
-        const translatedText = data[0].map(item => item[0]).join('');
-        translateOutput.innerText = translatedText;
+    if (data && data[0]) {
+      const detectedLang = data[2] || 'en';
+      let translatedText = '';
+
+      if (detectedLang === 'es') {
+        url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(text)}`;
+        response = await fetch(url);
+        data = await response.json();
+        
+        translatedText = data[0].map(item => item[0]).join('');
+
+        sourceLabel.innerText = 'Spanish (Detected)';
+        targetLabel.innerText = 'English';
 
         lastTranslatedPair = {
-          english: sourceLang === 'en' ? text : translatedText,
-          spanish: sourceLang === 'es' ? text : translatedText
+          english: translatedText,
+          spanish: text
         };
+      } else {
+        translatedText = data[0].map(item => item[0]).join('');
 
-        saveBtn.disabled = false;
-        saveBtn.innerText = '💾 Save';
+        sourceLabel.innerText = 'English (Detected)';
+        targetLabel.innerText = 'Spanish';
+
+        lastTranslatedPair = {
+          english: text,
+          spanish: translatedText
+        };
       }
-    } catch {
-      translateOutput.innerText = 'Translation failed.';
+
+      translateOutput.innerText = translatedText;
+      saveBtn.disabled = false;
+      saveBtn.innerText = '💾 Save';
     }
+  } catch (err) {
+    console.error('Translation error:', err);
+    translateOutput.innerText = 'Translation failed.';
   }
+}
 
   saveBtn.addEventListener('click', () => {
     if (!lastTranslatedPair.english) return;
@@ -120,6 +143,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   openDashboardBtn.addEventListener('click', () => {
     chrome.tabs.create({ url: chrome.runtime.getURL('dashboard.html') });
+  });
+
+  // Check for highlighted text passed from background shortcut
+  chrome.storage.local.get(['highlightedText'], (result) => {
+    if (result.highlightedText) {
+      translateInput.value = result.highlightedText;
+      performTranslation();
+      chrome.storage.local.remove('highlightedText');
+    }
   });
 });
 

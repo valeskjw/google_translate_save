@@ -1,13 +1,27 @@
 {
   "manifest_version": 3,
-  "name": "Spanish Vocabulary Saver",
+  "name": "SpanishDict Vocabulary Saver",
   "version": "1.0",
-  "description": "Saves translated terms to a readable html file.",
+  "description": "Saves translated terms from SpanishDict to a dictionary text file and exports to Anki.",
   "permissions": [
-    "storage"
+    "storage",
+    "activeTab",
+    "scripting"
   ],
   "action": {
     "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "commands": {
+    "translate_highlight": {
+      "suggested_key": {
+        "default": "Alt+T",
+        "mac": "Alt+T"
+      },
+      "description": "Translate selected text and open translator"
+    }
   },
   "content_scripts": [
     {
