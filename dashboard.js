@@ -53,57 +53,57 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-async function performTranslation() {
-  const text = translateInput.value.trim();
-  if (!text) return;
+  async function performTranslation() {
+    const text = translateInput.value.trim();
+    if (!text) return;
 
-  translateOutput.innerText = 'Translating...';
-  saveBtn.disabled = true;
+    translateOutput.innerText = 'Translating...';
+    saveBtn.disabled = true;
 
-  try {
-    let url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=es&dt=t&q=${encodeURIComponent(text)}`;
-    let response = await fetch(url);
-    let data = await response.json();
+    try {
+      let url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=es&dt=t&q=${encodeURIComponent(text)}`;
+      let response = await fetch(url);
+      let data = await response.json();
 
-    if (data && data[0]) {
-      const detectedLang = data[2] || 'en';
-      let translatedText = '';
+      if (data && data[0]) {
+        const detectedLang = data[2] || 'en';
+        let translatedText = '';
 
-      if (detectedLang === 'es') {
-        url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(text)}`;
-        response = await fetch(url);
-        data = await response.json();
-        
-        translatedText = data[0].map(item => item[0]).join('');
+        if (detectedLang === 'es') {
+          url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(text)}`;
+          response = await fetch(url);
+          data = await response.json();
+          
+          translatedText = data[0].map(item => item[0]).join('');
 
-        sourceLabel.innerText = 'Spanish (Detected)';
-        targetLabel.innerText = 'English';
+          sourceLabel.innerText = 'Spanish (Detected)';
+          targetLabel.innerText = 'English';
 
-        lastTranslatedPair = {
-          english: translatedText,
-          spanish: text
-        };
-      } else {
-        translatedText = data[0].map(item => item[0]).join('');
+          lastTranslatedPair = {
+            english: translatedText,
+            spanish: text
+          };
+        } else {
+          translatedText = data[0].map(item => item[0]).join('');
 
-        sourceLabel.innerText = 'English (Detected)';
-        targetLabel.innerText = 'Spanish';
+          sourceLabel.innerText = 'English (Detected)';
+          targetLabel.innerText = 'Spanish';
 
-        lastTranslatedPair = {
-          english: text,
-          spanish: translatedText
-        };
+          lastTranslatedPair = {
+            english: text,
+            spanish: translatedText
+          };
+        }
+
+        translateOutput.innerText = translatedText;
+        saveBtn.disabled = false;
+        saveBtn.innerText = '💾 Save to Dictionary';
       }
-
-      translateOutput.innerText = translatedText;
-      saveBtn.disabled = false;
-      saveBtn.innerText = '💾 Save';
+    } catch (err) {
+      console.error('Translation error:', err);
+      translateOutput.innerText = 'Translation failed.';
     }
-  } catch (err) {
-    console.error('Translation error:', err);
-    translateOutput.innerText = 'Translation failed.';
   }
-}
 
   saveBtn.addEventListener('click', () => {
     if (!lastTranslatedPair.english) return;
@@ -143,6 +143,24 @@ async function performTranslation() {
     if (currentPage * itemsPerPage < filteredEntries.length) {
       currentPage++;
       renderTablePage();
+    }
+  });
+
+  document.getElementById('dictionary-list').addEventListener('click', (e) => {
+    if (e.target.classList.contains('delete-btn')) {
+      const row = e.target.closest('tr');
+      const entryToDelete = row.dataset.entry;
+
+      if (!entryToDelete) return;
+
+      chrome.storage.local.get(['savedDictionary'], (result) => {
+        let list = result.savedDictionary || [];
+        list = list.filter(entry => entry !== entryToDelete);
+
+        chrome.storage.local.set({ savedDictionary: list }, () => {
+          loadSavedHistory();
+        });
+      });
     }
   });
 });
@@ -197,10 +215,18 @@ function renderTablePage() {
   pageItems.forEach((entry) => {
     const [english, spanish, rawTimestamp] = entry.split(' - ');
     const row = document.createElement('tr');
+    
+    row.dataset.entry = entry;
+
     row.innerHTML = `
       <td><strong>${escapeHtml(english || '')}</strong></td>
       <td style="color: #0073e6; font-weight: 500;">${escapeHtml(spanish || '')}</td>
       <td style="color: #6c757d;">${escapeHtml(formatTime(rawTimestamp))}</td>
+      <td>
+        <button class="delete-btn" style="background-color: #d9534f; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 11px; font-weight: 600;">
+          🗑️
+        </button>
+      </td>
     `;
     tableBody.appendChild(row);
   });
